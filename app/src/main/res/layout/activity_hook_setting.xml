@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--author : Pois0nBread
+    e-mail : pois0nbreads@gmail.com
+    time   : 2020/03/29
+    desc   : settings_activity
+    version: 1.0-->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_margin="15dp"
+    android:orientation="vertical"
+    tools:context=".ui.HookSettingActivity">
+
+    <Switch
+        android:id="@+id/settings_smart_hook_mode_sw"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:checked="true"
+        android:text="启用智能Hook模式 (如果没有生效请关闭)" />
+
+    <TextView
+        android:text="  备注：智能模式会自动判断游戏包名。\n                如果无法生效关闭并手动添加。"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <LinearLayout
+        android:id="@+id/setting_linear_layout"
+        android:orientation="vertical"
+        android:visibility="invisible"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        android:layout_height="match_parent">
+
+        <Button
+            android:id="@+id/setting_add_btn"
+            android:text="点击添加新应用"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <Button
+            android:id="@+id/setting_clear_btn"
+            android:text="清空列表"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+        <TextView
+            android:text="  长按列表移除"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <ListView
+            android:id="@+id/setting_listView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+</LinearLayout>

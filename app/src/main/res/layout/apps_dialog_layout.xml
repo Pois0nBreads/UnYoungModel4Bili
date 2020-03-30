@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--author : Pois0nBread
+    e-mail : pois0nbreads@gmail.com
+    time   : 2020/03/29
+    desc   : py_pay_dialog
+    version: 1.0-->
+
+<ListView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dialog_list"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"/>
