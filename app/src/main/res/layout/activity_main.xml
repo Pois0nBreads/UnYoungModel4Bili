@@ -2,12 +2,11 @@
 
 <!--author : Pois0nBread
     e-mail : pois0nbreads@gmail.com
-    time   : 2020/03/29
+    time   : 2020/04/19
     desc   : main_activity
-    version: 1.0-->
+    version: 2.0-->
 
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -29,56 +28,50 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <Switch
+                <androidx.appcompat.widget.SwitchCompat
                     android:id="@+id/main_enable_sw"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_margin="8dp"
                     android:text="总开关" />
 
-                <Switch
+                <androidx.appcompat.widget.SwitchCompat
                     android:id="@+id/main_launcher_mode_sw"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_margin="8dp"
                     android:text="启用多用户登陆器（支持强制上线）" />
 
-                <Switch
+                <androidx.appcompat.widget.SwitchCompat
                     android:id="@+id/main_logout_mode_sw"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_margin="8dp"
                     android:text="屏蔽强制下线提示窗\n (打开后每日无限时长)" />
 
-                <Button
+                <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/main_hook_mode_btn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="选择插件作用范围" />
 
-                <Button
+                <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/main_qq_group_btn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="点击加群 交流/反馈Bugs" />
 
-                <Button
-                    android:id="@+id/main_py_pay_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="捐赠秃头作者 _(:з」∠)_" />
-
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content">
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/main_check_update_button"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="检查更新" />
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/main_github_button"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -102,19 +95,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_margin="8dp"
-                    android:text="重要的事情：\n这是一个Xposed插件，需要Xposed环境\n请尽可能不要在非正常方式登陆时氪金\n这是一个Beta版的软件"
+                    android:text="重要的事情：\n1.这是一个Xposed插件，需要Xposed环境\n2.请尽可能不要在非正常方式登陆时氪金\n3.这是免费软件，请不要在任何地方付费\n4.本软件遵循GNU协议,请勿用于商业用途"
                     android:textColor="@android:color/holo_red_light" />
 
             </LinearLayout>
         </RelativeLayout>
     </ScrollView>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_margin="8dp"
-        android:text="QQ群：1062440816" />
 
 </RelativeLayout>

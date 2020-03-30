@@ -29,6 +29,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <provider
+            android:authorities="net.pois0nbread.unyoungmodel4bili.SettingProvider"
+            android:exported="true"
+            android:name=".hook.SettingProvider"/>
 
         <meta-data
             android:name="xposedmodule"

@@ -1,5 +1,6 @@
 package net.pois0nbread.unyoungmodel4bili.adapter;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -11,18 +12,21 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import java.lang.reflect.Field;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * <pre>
  *     author : Pois0nBread
  *     e-mail : pois0nbreads@gmail.com
- *     time   : 2020/03/18
+ *     time   : 2020/04/19
  *     desc   : UserInfoAdapter
- *     version: 1.0
+ *     version: 2.0
  * </pre>
  */
 
@@ -30,37 +34,37 @@ public class UserInfoAdapter extends BaseAdapter {
 
     private List<UserInfo> mData;
     private Context mContext;
-    private boolean isNullData = false;
+    private boolean isNullData;
     private List<UserInfo> nullDataUserInfo = new ArrayList<>();
 
     {
         nullDataUserInfo.add(new UserInfo());
     }
 
-    public UserInfoAdapter(Context context, List<UserInfo> userInfos) {
-        if (userInfos == null) {
+    protected UserInfoAdapter(Context context, List<UserInfo> userInfo) {
+        if (userInfo == null) {
             isNullData = true;
             this.mData = nullDataUserInfo;
-        } else if (userInfos.size() == 0) {
+        } else if (userInfo.size() == 0) {
             isNullData = true;
             this.mData = nullDataUserInfo;
         } else {
             isNullData = false;
-            this.mData = userInfos;
+            this.mData = userInfo;
         }
         this.mContext = context;
     }
 
-    public void changeData(List<UserInfo> userInfos) {
-        if (userInfos == null) {
+    protected void changeData(List<UserInfo> userInfo) {
+        if (userInfo == null) {
             isNullData = true;
             this.mData = nullDataUserInfo;
-        } else if (userInfos.size() == 0) {
+        } else if (userInfo.size() == 0) {
             isNullData = true;
             this.mData = nullDataUserInfo;
         } else {
             isNullData = false;
-            this.mData = userInfos;
+            this.mData = userInfo;
         }
         notifyDataSetChanged();
     }
@@ -81,6 +85,7 @@ public class UserInfoAdapter extends BaseAdapter {
     }
 
     //返回带数据当前行的Item视图对象
+    @SuppressLint("SetTextI18n")
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
 
@@ -90,9 +95,7 @@ public class UserInfoAdapter extends BaseAdapter {
             return convertView;
         }
 
-        final int index = position;
-        final  UserInfo userInfo = mData.get(index);
-        final Long l = Long.parseLong(new SimpleDateFormat("yyyyMMdd").format(new Date()));
+        final UserInfo userInfo = mData.get(position);
         TextView textView;
         if (convertView == null) {
             convertView = LayoutInflater.from(mContext).inflate(android.R.layout.simple_list_item_1, parent, false);
@@ -103,12 +106,13 @@ public class UserInfoAdapter extends BaseAdapter {
         }
 
         textView.setOnClickListener(v -> {
-            if ((l - userInfo.getLast_login_time_long()) > 1) {
+            if (isTimeOut(userInfo.getLast_login_time_long())) {
                 new AlertDialog.Builder(mContext)
                         .setTitle("警告")
-                        .setMessage("改令牌已超过一天以上没有通过官方登陆器登录，可能无法正常登录。\n是否继续登录")
+                        .setMessage("改令牌已超过一个月没有通过官方登陆器登录，可能无法正常登录。\n是否继续登录")
                         .setNeutralButton("继续登录", (dialog, which) -> onLoginListener(userInfo))
-                        .setPositiveButton("取消登录", (dialog, which) -> {})
+                        .setPositiveButton("取消登录", (dialog, which) -> {
+                        })
                         .create().show();
             } else {
                 onLoginListener(userInfo);
@@ -135,14 +139,15 @@ public class UserInfoAdapter extends BaseAdapter {
                                     setDialogShowing(dialog, false);
                                     onDeleteListener(userInfo.getUid());
                                 })
-                                .setPositiveButton("取消", (dialog1, which1) -> {})
+                                .setPositiveButton("取消", (dialog1, which1) -> {
+                                })
                                 .create().show();
                     })
                     .create().show();
             return true;
         });
         textView.setText("B站ID：" + userInfo.getUsername() + "\n最后一次通过官方登陆器登陆的时间：" + userInfo.getLast_login_time());
-        if ((l - userInfo.getLast_login_time_long()) > 1) {
+        if (isTimeOut(userInfo.getLast_login_time_long())) {
             textView.setTextColor(Color.RED);
         } else {
             textView.setTextColor(Color.BLUE);
@@ -150,18 +155,46 @@ public class UserInfoAdapter extends BaseAdapter {
         return convertView;
     }
 
-    private void setDialogShowing(DialogInterface dialog, boolean b){
+    private void setDialogShowing(DialogInterface dialog, boolean b) {
         b = !b;
         try {
-            Field field = dialog.getClass().getSuperclass().getDeclaredField("mShowing");
+            Field field = Objects.requireNonNull(dialog.getClass().getSuperclass()).getDeclaredField("mShowing");
             field.setAccessible(true);
             field.set(dialog, b);
         } catch (Exception e) {
-            e.printStackTrace();;
+            e.printStackTrace();
         }
         if (b) dialog.dismiss();
     }
 
-    protected void onDeleteListener(String uid){}
-    protected void onLoginListener(UserInfo userInfo){}
+    @SuppressLint("SimpleDateFormat")
+    private boolean isTimeOut(Long loginTime) {
+        try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+
+            Calendar fromCalendar = Calendar.getInstance();
+            fromCalendar.setTime(dateFormat.parse(loginTime.toString()));
+            fromCalendar.set(Calendar.HOUR_OF_DAY, fromCalendar.getMinimum(Calendar.HOUR_OF_DAY));
+            fromCalendar.set(Calendar.MINUTE, fromCalendar.getMinimum(Calendar.MINUTE));
+            fromCalendar.set(Calendar.SECOND, fromCalendar.getMinimum(Calendar.SECOND));
+            fromCalendar.set(Calendar.MILLISECOND, fromCalendar.getMinimum(Calendar.MILLISECOND));
+
+            Calendar toCalendar = Calendar.getInstance();
+            toCalendar.setTime(new Date());
+            toCalendar.set(Calendar.HOUR_OF_DAY, fromCalendar.getMinimum(Calendar.HOUR_OF_DAY));
+            toCalendar.set(Calendar.MINUTE, fromCalendar.getMinimum(Calendar.MINUTE));
+            toCalendar.set(Calendar.SECOND, fromCalendar.getMinimum(Calendar.SECOND));
+            toCalendar.set(Calendar.MILLISECOND, fromCalendar.getMinimum(Calendar.MILLISECOND));
+
+            return (toCalendar.getTime().getTime() - fromCalendar.getTime().getTime()) / (1000 * 60 * 60 * 24) > 30;
+        } catch (ParseException e) {
+            return false;
+        }
+    }
+
+    protected void onDeleteListener(String uid) {
+    }
+
+    protected void onLoginListener(UserInfo userInfo) {
+    }
 }

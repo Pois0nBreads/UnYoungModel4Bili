@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">UnYoungModel4Bili</string>
-    <string name="mainActivity_label">UnYoungModel4Bili (V1.0 Beta)</string>
+    <string name="mainActivity_label">UnYoungModel4Bili (V2.0)</string>
     <string name="hookSettingActivity_label">设置</string>
 </resources>
