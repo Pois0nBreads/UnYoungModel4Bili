@@ -14,7 +14,7 @@
     android:orientation="vertical"
     tools:context=".ui.HookSettingActivity">
 
-    <Switch
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/settings_smart_hook_mode_sw"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -34,13 +34,13 @@
         android:layout_height="match_parent">
         android:layout_height="match_parent">
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/setting_add_btn"
             android:text="点击添加新应用"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/setting_clear_btn"
             android:text="清空列表"
             android:layout_width="match_parent"

@@ -29,13 +29,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <provider
+            android:authorities="net.pois0nbread.unyoungmodel4bili.SettingProvider"
+            android:exported="true"
+            android:name=".hook.SettingProvider"/>
 
         <meta-data
             android:name="xposedmodule"
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="B服反防沉迷系统 (V1.0 Beta)" />
+            android:value="B服反防沉迷系统 (V2.0.1)" />
         <meta-data
             android:name="xposedminversion"
             android:value="82" />

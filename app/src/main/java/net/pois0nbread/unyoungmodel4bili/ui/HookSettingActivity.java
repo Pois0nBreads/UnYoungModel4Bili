@@ -12,10 +12,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.Switch;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 
 import net.pois0nbread.unyoungmodel4bili.R;
 import net.pois0nbread.unyoungmodel4bili.adapter.AppAdapter;
@@ -34,22 +34,23 @@ import java.util.List;
  * <pre>
  *     author : Pois0nBread
  *     e-mail : pois0nbreads@gmail.com
- *     time   : 2030/03/30
+ *     time   : 2030/04/19
  *     desc   : HookSettingActivity
- *     version: 1.0
+ *     version: 2.0
  * </pre>
  */
 
 public class HookSettingActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private SharedPreferences mSharedPreferences = null;
+    private SharedPreferences mSharedPreferences = MainActivity.mSharedPreferences;
+    private Context mContext = this;
 
-    private Switch mSmartModeSwitch = null;
+    private SwitchCompat mSmartModeSwitch = null;
     private ListView mListView = null;
     private LinearLayout mLinearLayout = null;
     private ListView mDialogListView = null;
 
-    private View mView = null;
+    private View mView  = null;
     private AlertDialog mDialog = null;
 
     private HookListAdapter mHookListAdapter = null;
@@ -59,7 +60,6 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_hook_setting);
-        mSharedPreferences = getSharedPreferences(MapKeys.Settings.toString(), Context.MODE_WORLD_WRITEABLE);
         bindView();
     }
 
@@ -79,18 +79,18 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
         findViewById(R.id.setting_add_btn).setOnClickListener(this);
         findViewById(R.id.setting_clear_btn).setOnClickListener(this);
         mSmartModeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            mSharedPreferences.edit().putBoolean(MapKeys.Smart_Hook_Mode.toString(), isChecked).commit();
+            mSharedPreferences.edit().putBoolean(MapKeys.Smart_Hook_Mode.toString(), isChecked).apply();
             if (isChecked)
                 mLinearLayout.setVisibility(View.INVISIBLE);
             else
                 mLinearLayout.setVisibility(View.VISIBLE);
-            Toast.makeText(HookSettingActivity.this, "重启游戏生效", Toast.LENGTH_SHORT).show();
+            Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
         });
 
         //setDialogView
-        mView = LayoutInflater.from(this).inflate(R.layout.apps_dialog_layout, null);
+        mView = LayoutInflater.from(mContext).inflate(R.layout.apps_dialog_layout, null);
         mDialogListView = mView.findViewById(R.id.dialog_list);
-        mAppAdapter = new AppAdapter(this, getAllAppInfos());
+        mAppAdapter = new AppAdapter(mContext, getAllAppInfos());
         mDialogListView.setAdapter(mAppAdapter);
         mDialogListView.setOnItemClickListener((parent, view, position, id) -> {
             AppInfo appInfo = (AppInfo) parent.getItemAtPosition(position);
@@ -102,37 +102,37 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
                 if (jsonString == null || jsonString.equals("")) {
                     JSONArray jsonArray = new JSONArray();
                     jsonArray.put(jsonObject);
-                    mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), jsonArray.toString()).commit();
+                    mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), jsonArray.toString()).apply();
                     mDialog.dismiss();
-                    mHookListAdapter = new HookListAdapter(this, getListByShare());
+                    mHookListAdapter = new HookListAdapter(mContext, getListByShare());
                     mListView.setAdapter(mHookListAdapter);
-                    Toast.makeText(this, "重启游戏生效", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
                     return;
                 }
                 JSONArray jsonArray = new JSONArray(jsonString);
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject json = jsonArray.getJSONObject(i);
                     if (json.getString("PackageName").equals(jsonObject.getString("PackageName"))) {
-                        Toast.makeText(HookSettingActivity.this, "该应用已存在", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(mContext, "该应用已存在", Toast.LENGTH_SHORT).show();
                         return;
                     }
                 }
                 jsonArray.put(jsonObject);
-                mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), jsonArray.toString()).commit();
+                mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), jsonArray.toString()).apply();
             } catch (JSONException e) {
                 e.printStackTrace();
             }
             mDialog.dismiss();
-            mHookListAdapter = new HookListAdapter(this, getListByShare());
+            mHookListAdapter = new HookListAdapter(mContext, getListByShare());
             mListView.setAdapter(mHookListAdapter);
-            Toast.makeText(HookSettingActivity.this, "重启游戏生效", Toast.LENGTH_SHORT).show();
+            Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
         });
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
         mDialog = builder.setTitle("选择应用").setView(mView).setPositiveButton("取消", (dialog, which) -> {
         }).create();
 
         //setListView
-        mHookListAdapter = new HookListAdapter(this, getListByShare());
+        mHookListAdapter = new HookListAdapter(mContext, getListByShare());
         mListView.setAdapter(mHookListAdapter);
         mListView.setOnItemLongClickListener((parent, view, position, id) -> {
             JSONObject mJSONObject = (JSONObject) parent.getItemAtPosition(position);
@@ -147,11 +147,11 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
                         jsonArray.remove(i);
                     }
                 }
-                mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), jsonArray.toString()).commit();
+                mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), jsonArray.toString()).apply();
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-            mHookListAdapter = new HookListAdapter(this, getListByShare());
+            mHookListAdapter = new HookListAdapter(mContext, getListByShare());
             mListView.setAdapter(mHookListAdapter);
             return true;
         });
@@ -195,10 +195,10 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
                 mDialog.show();
                 break;
             case R.id.setting_clear_btn:
-                mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), "").commit();
+                mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), "").apply();
                 mHookListAdapter = new HookListAdapter(this, getListByShare());
                 mListView.setAdapter(mHookListAdapter);
-                Toast.makeText(this, "重启游戏生效", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
                 break;
         }
     }

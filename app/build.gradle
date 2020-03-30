@@ -5,11 +5,11 @@ android {
     buildToolsVersion "29.0.2"
     defaultConfig {
         applicationId "net.pois0nbread.unyoungmodel4bili"
-        minSdkVersion 23
+        minSdkVersion 21
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 23
-        versionCode 1
-        versionName "1.0"
+        versionCode 2001
+        versionName "2.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
