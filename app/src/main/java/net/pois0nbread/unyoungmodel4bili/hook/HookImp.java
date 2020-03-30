@@ -42,7 +42,7 @@ import net.pois0nbread.unyoungmodel4bili.util.Util;
  *     e-mail : pois0nbreads@gmail.com
  *     time   : 2030/03/30
  *     desc   : HookImp
- *     version: 1.0
+ *     version: 1.1
  * </pre>
  */
 
@@ -65,6 +65,7 @@ public class HookImp implements IXposedHookLoadPackage {
 
         if (mLoadPackageParam.packageName.equals(BuildConfig.APPLICATION_ID)) {
             XposedHelpers.findAndHookMethod("net.pois0nbread.unyoungmodel4bili.ui.MainActivity" ,mLoadPackageParam.classLoader, "isHooked", XC_MethodReplacement.returnConstant(true));
+            return;
         }
 
         if (!Settings.getEnable()) return;
@@ -149,7 +150,7 @@ public class HookImp implements IXposedHookLoadPackage {
                                 .setCancelable(false)
                                 .setMessage("\n单击用户名登录， 长按查看详细信息或删除")
                                 .setNeutralButton("关于&设置", (dialog, which) -> {
-                                    mActivity.startActivity(mActivity.getPackageManager().getLaunchIntentForPackage("com.example.myapplicationtttttt"));
+                                    mActivity.startActivity(mActivity.getPackageManager().getLaunchIntentForPackage("net.pois0nbread.unyoungmodel4bili"));
                                     setDialogShowing(dialog, true);
                                 })
                                 .setPositiveButton("取消登录", (dialog, which) -> {
@@ -158,7 +159,7 @@ public class HookImp implements IXposedHookLoadPackage {
                                         m.invoke(param.args[0], new Object[]{oBSGameSdkError});
                                         Toast.makeText(mActivity, "取消登录", Toast.LENGTH_SHORT).show();
                                         setDialogShowing(dialog, false);
-                                    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                                    } catch (Exception e) {
                                         e.printStackTrace();
                                     }
                                 })
@@ -168,7 +169,7 @@ public class HookImp implements IXposedHookLoadPackage {
                                         m.invoke(param.thisObject, new Object[]{null});
                                         setDialogShowing(dialog, false);
                                         Toast.makeText(mActivity, "正在使用官方登录器", Toast.LENGTH_SHORT).show();
-                                    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                                    } catch (Exception e) {
                                         e.printStackTrace();
                                     }
                                 });
@@ -205,7 +206,7 @@ public class HookImp implements IXposedHookLoadPackage {
                                     m.invoke(param.args[0], new Object[]{mBundle});
                                     alertDialog.dismiss();
                                     Toast.makeText(mActivity, "正在登录", Toast.LENGTH_SHORT).show();
-                                } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                                } catch (Exception e) {
                                     e.printStackTrace();
                                 }
                             }

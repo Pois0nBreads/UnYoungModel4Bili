@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.Switch;
@@ -34,11 +35,13 @@ import java.net.URLConnection;
  *     e-mail : pois0nbreads@gmail.com
  *     time   : 2030/03/30
  *     desc   : MainActivity
- *     version: 1.0
+ *     version: 1.1
  * </pre>
  */
 
 public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener, View.OnClickListener {
+
+    private Context mContext = this;
 
     private Switch mEnableSwitch = null;
     private Switch mLauncherSwitch = null;
@@ -48,16 +51,17 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
     private AlertDialog mPy_Pay_alertDialog = null;
 
-    private SharedPreferences mSharedPreferences = null;
+    public static SharedPreferences mSharedPreferences = null;
 
+    @SuppressLint("WorldReadableFiles")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mSharedPreferences = getSharedPreferences(MapKeys.Settings.toString(), Context.MODE_WORLD_WRITEABLE);
+        mSharedPreferences = getSharedPreferences(MapKeys.Settings.toString(), Context.MODE_WORLD_READABLE);
         bindView();
         if (!isHooked()) {
-            new AlertDialog.Builder(this)
+            new AlertDialog.Builder(mContext)
                     .setTitle("模块未激活或未安装Xposed框架")
                     .setMessage("请先激活模块或安装Xposed框架后再运行软件")
                     .setNegativeButton("确认", (dialog, which) -> {
@@ -65,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             return;
         }
         if (mSharedPreferences.getBoolean(MapKeys.First_Open.toString(), true)) {
-            new AlertDialog.Builder(this)
+            new AlertDialog.Builder(mContext)
                     .setTitle("来自作者的留言 ⁄(⁄ ⁄•⁄ω⁄•⁄ ⁄)⁄")
                     .setMessage("制作这个软件花费我不少时间，如果你喜欢这个项目，可以赞助我买瓶可乐\n⊙▽⊙")
                     .setNegativeButton("给作者打钱", (dialog, which) -> mPy_Pay_alertDialog.show())
@@ -111,15 +115,15 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         switch (buttonView.getId()) {
             case R.id.main_enable_sw:
                 mSharedPreferences.edit().putBoolean(MapKeys.Enable.toString(), isChecked).commit();
-                Toast.makeText(this, "重启游戏生效", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.main_launcher_mode_sw:
                 mSharedPreferences.edit().putBoolean(MapKeys.Launcher_Mode.toString(), isChecked).commit();
-                Toast.makeText(this, "重启游戏生效", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.main_logout_mode_sw:
                 mSharedPreferences.edit().putBoolean(MapKeys.Logout_Mode.toString(), isChecked).commit();
-                Toast.makeText(this, "重启游戏生效", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
                 break;
         }
     }
@@ -137,7 +141,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                     Intent intent = Intent.parseUri(intentFullUrl, Intent.URI_INTENT_SCHEME);
                     startActivity(intent);
                 } catch (Exception e) {
-                    Toast.makeText(this, "您似乎没有安装支付宝", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mContext, "您似乎没有安装支付宝", Toast.LENGTH_SHORT).show();
                 }
                 break;
             case R.id.dialog_button2:
@@ -167,14 +171,14 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         public void handleMessage(Message msg) {
             try {
                 JSONObject jsonObject = new JSONObject(msg.getData().getString("json"));
-                AlertDialog.Builder mBuilder = new AlertDialog.Builder(MainActivity.this);
+                AlertDialog.Builder mBuilder = new AlertDialog.Builder(mContext);
                 double version_code = jsonObject.getDouble("version_code");
                 String last_version = jsonObject.getString("last_version");
                 String update_date = jsonObject.getString("update_date");
                 String update_text = jsonObject.getString("update_text");
                 String update_url = jsonObject.getString("update_url");
                 String version_type = jsonObject.getString("version_type");
-                if (version_code <= 1.0) {
+                if (version_code <= 1.1) {
                     Toast.makeText(MainActivity.this, "已是最新版本", Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -185,7 +189,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                 mBuilder.create().show();
             } catch (JSONException e) {
                 e.printStackTrace();
-                Toast.makeText(MainActivity.this, "检查更新出错", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mContext, "检查更新出错", Toast.LENGTH_SHORT).show();
             }
         }
     };
@@ -195,8 +199,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             String get = "";
             try {
                 URL url = new URL(adress);
-                URLConnection urlconn = url.openConnection();
-                BufferedReader br = new BufferedReader(new InputStreamReader(urlconn.getInputStream()));
+                URLConnection conn = url.openConnection();
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 String buf;
                 while ((buf = br.readLine()) != null) {
                     get += buf;
@@ -213,6 +217,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     }
 
         private boolean isHooked () {
+            Log.i("isHooked", "kksk");
             return false;
         }
     }

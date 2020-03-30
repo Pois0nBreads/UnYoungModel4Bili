@@ -1,7 +1,5 @@
 package net.pois0nbread.unyoungmodel4bili.util;
 
-import android.util.Log;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -12,7 +10,7 @@ import org.json.JSONObject;
  *     e-mail : pois0nbreads@gmail.com
  *     time   : 2030/03/30
  *     desc   : Util
- *     version: 1.0
+ *     version: 1.1
  * </pre>
  */
 
@@ -23,7 +21,6 @@ public class Util {
             return game.matches(".*bili.*");
         }
         String list = Settings.getHookListMode();
-        Log.d("AAAAA", "1" + list);
         if (list == null || list.equals("")) return false;
         boolean isgame = false;
         try {
