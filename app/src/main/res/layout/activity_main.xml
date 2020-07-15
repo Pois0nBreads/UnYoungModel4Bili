@@ -2,9 +2,9 @@
 
 <!--author : Pois0nBread
     e-mail : pois0nbreads@gmail.com
-    time   : 2020/04/19
+    time   : 2020/07/14
     desc   : main_activity
-    version: 2.0-->
+    version: 2.2.1-->
 
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -18,7 +18,7 @@
 
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="wrap_content">
 
             <LinearLayout
                 android:layout_marginLeft="50dp"
@@ -49,11 +49,24 @@
                     android:layout_margin="8dp"
                     android:text="屏蔽强制下线提示窗\n (打开后每日无限时长)" />
 
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/main_hook_mode_btn"
+
+
+                <LinearLayout
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="选择插件作用范围" />
+                    android:layout_height="wrap_content">
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/main_hook_mode_btn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="选择插件作用范围" />
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/main_set_update_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="设置更新服务器" />
+                </LinearLayout>
 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/main_qq_group_btn"
@@ -89,7 +102,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_margin="8dp"
-                    android:text="使B站代理的游戏绕过防沉迷 强行登录\n同时支持多用户快速切换 \n\n目前已确认适配的B站SDK：\n    V2.7.0\n\（如果出现问题请关闭全局模式）\n\n如有问题欢迎加群沟通" />
+                    android:text="使B站代理的游戏绕过防沉迷 强行登录\n同时支持多用户快速切换 \n\n目前已确认适配的B站SDK：\n    V2.7.0+\n\（如果出现问题请关闭全局模式）\n\n如有问题欢迎加群沟通" />
 
                 <TextView
                     android:layout_width="wrap_content"

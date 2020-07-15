@@ -9,11 +9,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.view.ViewGroup.LayoutParams;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
@@ -21,26 +19,23 @@ import android.widget.Toast;
 
 import androidx.appcompat.view.ContextThemeWrapper;
 
+import com.bsgamesdk.android.dc.activity.BSGameAntiIndulegnceActivity;
+
 import net.pois0nbread.unyoungmodel4bili.BuildConfig;
 import net.pois0nbread.unyoungmodel4bili.adapter.UserInfo;
 import net.pois0nbread.unyoungmodel4bili.adapter.UserInfoAdapter;
 import net.pois0nbread.unyoungmodel4bili.adapter.UserInfoUtil;
+import net.pois0nbread.unyoungmodel4bili.util.MyClassLoader;
 import net.pois0nbread.unyoungmodel4bili.util.Settings;
 
-import org.json.JSONObject;
-
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Map;
 import java.util.Objects;
 
-import dalvik.system.DexClassLoader;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XC_MethodReplacement;
@@ -52,9 +47,9 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  * <pre>
  *     author : Pois0nBread
  *     e-mail : pois0nbreads@gmail.com
- *     time   : 2030/04/19
+ *     time   : 2030/07/14
  *     desc   : HookImp
- *     version: 2.0
+ *     version: 2.2.0
  * </pre>
  */
 
@@ -62,20 +57,18 @@ public class HookImp implements IXposedHookLoadPackage {
 
     //Tag
     private static final String TAG = "BSGameSdk Hook : ";
-    private final String SDK_Version = "2.7.0";
     //实例
-    private Settings mSettings = null;
-    private XC_MethodHook.MethodHookParam paramBSGameSdk = null;
+    private Object oCallbackListener = null;
+    private Object oBSGameSdk = null;
     private SharedPreferences mPreferences = null;
     private Activity mActivity = null;
     private Context mApplicationContext = null;
-    private Object oBSGameSdkError = null;
-    //类加载器
-    private DexClassLoader dcLoader = null;
     //类
     private Class<?> cBSGameSdkError = null; //com.bsgamesdk.android.callbacklistener.BSGameSdkError
     private Class<?> cCallbackListener = null;   //com.bsgamesdk.android.callbacklistener.CallbackListener
     private Class<?> cBSGameSdk = null;         //com.bsgamesdk.android.BSGameSdk
+
+    private MyClassLoader myClassLoader = null;
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam mLoadPackageParam) {
@@ -87,264 +80,268 @@ public class HookImp implements IXposedHookLoadPackage {
 
         XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook() {
             @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
+            protected void beforeHookedMethod(MethodHookParam param) throws ClassNotFoundException {
                 mApplicationContext = (Context) param.args[0];
 
-                mSettings = new Settings(mApplicationContext);
+                Settings mSettings = new Settings(mApplicationContext);
                 try {
                     if (!mSettings.getEnable() || !mSettings.isBgame(mLoadPackageParam.packageName)) return;
                 } catch (Exception e) {
                     return;
                 }
 
+                //加载外部dex
                 mPreferences = mApplicationContext.getSharedPreferences("info", Context.MODE_PRIVATE);
                 try {
                     ApplicationInfo mApplicationInfo = mApplicationContext.getPackageManager().getApplicationInfo("net.pois0nbread.unyoungmodel4bili", 0);
-                    String dexPath = mApplicationInfo.sourceDir;
-                    String dexOutputDir = mApplicationContext.getApplicationInfo().dataDir;
-                    String libPath = mApplicationInfo.nativeLibraryDir;
-                    dcLoader = new DexClassLoader(dexPath, dexOutputDir, libPath, mLoadPackageParam.classLoader);
+                    myClassLoader = new MyClassLoader(mApplicationInfo.sourceDir, mApplicationContext.getClassLoader());
                 } catch (Exception e) {
-                    printLog(e.getMessage());
+                    printLog(e);
                 }
 
-                printLog("开始Hook packageName = " + mLoadPackageParam.packageName);
-                String SDKVersion = getSDKVersion(mLoadPackageParam.classLoader);
-                printLog("SDK Version is " + SDKVersion);
-                if (SDKVersion.equals(SDK_Version)) {
-                    printLog("SDK识别状态 : 正常");
-                } else {
-                    printLog("SDK识别状态 : 不是适配的版本");
-                }
-
+                printLog("开始Hook packageName = " + mApplicationContext.getPackageName());
                 printLog("Hook : 初始化变量");
                 try {
-                    cBSGameSdkError = XposedHelpers.findClass("com.bsgamesdk.android.callbacklistener.BSGameSdkError", mLoadPackageParam.classLoader);
-                    cCallbackListener = XposedHelpers.findClass("com.bsgamesdk.android.callbacklistener.CallbackListener", mLoadPackageParam.classLoader);
-                    cBSGameSdk = XposedHelpers.findClass("com.bsgamesdk.android.BSGameSdk", mLoadPackageParam.classLoader);
-                    oBSGameSdkError = cBSGameSdkError.getConstructor(int.class, String.class).newInstance(6002, "用户取消登录");
+                    cBSGameSdkError = myClassLoader.loadClass("com.bsgamesdk.android.callbacklistener.BSGameSdkError");
+                    cCallbackListener = myClassLoader.loadClass("com.bsgamesdk.android.callbacklistener.CallbackListener");
+                    cBSGameSdk = myClassLoader.loadClass("com.bsgamesdk.android.BSGameSdk");
                 } catch (Exception e) {
-                    printLog("Hook Error : 初始化变量 错误信息 : ");
+                    printLog("Hook Error : 初始化变量 错误信息 : " + e);
                     e.printStackTrace();
                 }
 
-
                 if (mSettings.getLogoutModeEnable()) {
-                    try {
-                        printLog("Hook : 屏蔽上下线数据发收");
-                        XC_MethodHook xc_methodHook = new XC_MethodHook() {
-                            @Override
-                            protected void beforeHookedMethod(MethodHookParam param) {
-                                param.setResult(null);
-                            }
-                        };
-                        XposedHelpers.findAndHookConstructor("com.android.data.sdk.Main", mLoadPackageParam.classLoader, XposedHelpers.findClass("com.android.data.sdk.PreDefined", mLoadPackageParam.classLoader), xc_methodHook);
-                        XposedHelpers.findAndHookMethod("com.android.data.sdk.Main", mLoadPackageParam.classLoader, "appDestroy", Activity.class, xc_methodHook);
-                        XposedHelpers.findAndHookMethod("com.android.data.sdk.Main", mLoadPackageParam.classLoader, "appOffline", Activity.class, xc_methodHook);
-                        XposedHelpers.findAndHookMethod("com.android.data.sdk.Main", mLoadPackageParam.classLoader, "appOnline", Activity.class, xc_methodHook);
-                        XposedHelpers.findAndHookMethod("com.android.data.sdk.Main", mLoadPackageParam.classLoader, "dCInit", Activity.class, XposedHelpers.findClass("com.android.data.sdk.domain.model.DataParamsModel", mLoadPackageParam.classLoader), String.class, xc_methodHook);
-                        XposedHelpers.findAndHookMethod("com.android.data.sdk.Main", mLoadPackageParam.classLoader, "readChannelId", Activity.class, XposedHelpers.findClass("com.android.data.sdk.domain.model.DataUpModel", mLoadPackageParam.classLoader), xc_methodHook);
-                        XposedHelpers.findAndHookMethod("com.android.data.sdk.Main", mLoadPackageParam.classLoader, "stop", Activity.class, xc_methodHook);
-                    } catch (Exception e) {
-                        printLog("Hook Error : 屏蔽上下线数据发收 错误信息 : ");
-                        e.printStackTrace();
-                    }
+                    myClassLoader.addClassName("com.android.data.sdk.Main");
+                    myClassLoader.addClassName("com.bsgamesdk.android.dc.DataCollect");
+                    printLog("Hook : 屏蔽上下线数据发收");
                 }
 
                 if (mSettings.getLauncherModeEnable()) {
+                    //添加双亲委派白名单
+                    myClassLoader.addClassName("com.bsgamesdk.android.dc.activity.BSGameAntiIndulegnceActivity");
 
+                    //获取mActivity，mPreferences 实列
                     printLog("Hook : 获取mActivity，mPreferences 实列");
-                    XposedHelpers.findAndHookMethod("com.bsgamesdk.android.BSGameSdk", mLoadPackageParam.classLoader, "initialize", boolean.class, Activity.class, String.class, String.class, String.class, String.class, XposedHelpers.findClass("com.bsgamesdk.android.callbacklistener.InitCallbackListener", mLoadPackageParam.classLoader), XposedHelpers.findClass("com.bsgamesdk.android.callbacklistener.ExitCallbackListener", mLoadPackageParam.classLoader), new XC_MethodHook() {
+                    XposedHelpers.findAndHookConstructor("com.bsgamesdk.android.BSGameSdk", myClassLoader,
+                            boolean.class, Activity.class, String.class, String.class, String.class, String.class,
+                            myClassLoader.loadClass("com.bsgamesdk.android.callbacklistener.InitCallbackListener"),
+                            myClassLoader.loadClass("com.bsgamesdk.android.callbacklistener.ExitCallbackListener"), new XC_MethodHook() {
 
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) {
-
+                            mActivity = (Activity) param.args[1];
                             try {
-                                mActivity = (Activity) param.args[1];
-                                hook(mLoadPackageParam.classLoader);
-
-                                XposedHelpers.findAndHookMethod("net.pois0nbread.unyoungmodel4bili.hook.MyLoginActivity", dcLoader, "onCreate", Bundle.class, new XC_MethodHook() {
-
-                                    AlertDialog alertDialog;
-                                    @Override
-                                    protected void beforeHookedMethod(MethodHookParam param) {
-                                        param.setResult(null);
-                                        Activity myLoginActivity = (Activity) param.thisObject;
-                                        Context dialogContext = new ContextThemeWrapper(myLoginActivity, android.R.style.Theme_Material_Light_Dialog);
-                                        Context windowContext = new ContextThemeWrapper(myLoginActivity, android.R.style.Theme_Material_Light);
-                                        try {
-                                            dcLoader.loadClass("net.pois0nbread.unyoungmodel4bili.hook.MyLoginActivity").getDeclaredMethod("superOnCreate", Bundle.class).invoke(myLoginActivity, (Bundle) param.args[0]);
-                                        } catch (Exception e) {
-                                            printLog(e.getMessage());
-                                        }
-                                        AlertDialog.Builder mBuild = new AlertDialog.Builder(dialogContext)
-                                                .setCancelable(false)
-                                                .setMessage("\n单击用户名登录， 长按查看详细信息或删除")
-                                                .setNeutralButton("关于&设置", (dialog, which) -> {
-                                                    myLoginActivity.startActivity(myLoginActivity.getPackageManager().getLaunchIntentForPackage("net.pois0nbread.unyoungmodel4bili"));
-                                                    setDialogShowing(dialog, true);
-                                                })
-                                                .setPositiveButton("取消登录", (dialog, which) -> {
-                                                    try {
-                                                        myLoginActivity.finish();
-                                                        setDialogShowing(dialog, false);
-                                                        Toast.makeText(myLoginActivity, "取消登录", Toast.LENGTH_SHORT).show();
-                                                        Method m = cCallbackListener.getDeclaredMethod("onFailed", cBSGameSdkError);
-                                                        m.invoke(paramBSGameSdk.args[0], oBSGameSdkError);
-                                                    } catch (Exception e) {
-                                                        e.printStackTrace();
-                                                    }
-                                                })
-                                                .setNegativeButton("使用官方登录器", (dialog, which) -> {
-                                                    try {
-                                                        myLoginActivity.finish();
-                                                        setDialogShowing(dialog, false);
-                                                        Toast.makeText(myLoginActivity, "正在使用官方登录器", Toast.LENGTH_SHORT).show();
-                                                        Method m = cBSGameSdk.getDeclaredMethod("login", cCallbackListener);
-                                                        m.invoke(paramBSGameSdk.thisObject, new Object[]{null});
-                                                    } catch (Exception e) {
-                                                        e.printStackTrace();
-                                                    }
-                                                });
-
-                                        if (SDKVersion.equals(SDK_Version)) mBuild.setTitle("B服多用户快速切换登陆器（SDK识别正常 V" + SDKVersion + "）");
-                                        else mBuild.setTitle("B服多用户快速切换登陆器（⚠ SDK不是适配的版本 V" + SDKVersion + "）");
-
-                                        UserInfoAdapter mArrayAdapter = new UserInfoAdapter(windowContext, UserInfoUtil.getUserInfoListBySharedPreferences(mPreferences)) {
-
-                                            @Override
-                                            protected void onDeleteListener(String uid) {
-                                                UserInfoUtil.removeUserInfoByUID(mPreferences, uid);
-                                                changeData(UserInfoUtil.getUserInfoListBySharedPreferences(mPreferences));
-                                                Toast.makeText(myLoginActivity, "删除成功", Toast.LENGTH_SHORT).show();
-                                            }
-
-                                            @Override
-                                            protected void onLoginListener(UserInfo userInfo) {
-                                                try {
-                                                    setDialogShowing(alertDialog, false);
-                                                    myLoginActivity.finish();
-                                                    Method m = cCallbackListener.getDeclaredMethod("onSuccess", Bundle.class);
-                                                    Bundle mBundle = new Bundle();
-                                                    mBundle.putInt("result", 1);
-                                                    mBundle.putString("uid", userInfo.getUid());
-                                                    mBundle.putString("username", userInfo.getUsername());
-                                                    mBundle.putString("nickname", userInfo.getNickname());
-                                                    mBundle.putString("access_token", userInfo.getAccess_token());
-                                                    mBundle.putString("expire_times", userInfo.getExpire_times());
-                                                    mBundle.putString("refresh_token", userInfo.getRefresh_token());
-                                                    m.invoke(paramBSGameSdk.args[0], mBundle);
-                                                    Toast.makeText(myLoginActivity, "正在登录", Toast.LENGTH_SHORT).show();
-                                                } catch (Exception e) {
-                                                    e.printStackTrace();
-                                                }
-                                            }
-                                        };
-
-                                        ListView mListView = new ListView(windowContext);
-                                        mListView.setAdapter(mArrayAdapter);
-                                        ScrollView mScrollView = new ScrollView(windowContext);
-                                        mScrollView.setFillViewport(true);
-                                        mScrollView.setLayoutParams(new ScrollView.LayoutParams(LayoutParams.MATCH_PARENT, 350));
-                                        mScrollView.addView(mListView);
-                                        RelativeLayout mRelativeLayout = new RelativeLayout(windowContext);
-                                        mRelativeLayout.addView(mScrollView);
-                                        mBuild.setView(mRelativeLayout);
-                                        alertDialog = mBuild.create();
-                                        alertDialog.show();
-                                    }
-                                });
-
-                                PackageInfo packageInfo = mApplicationContext.getPackageManager().getPackageInfo(mActivity.getPackageName(), 0);
-                                int labelRes = packageInfo.applicationInfo.labelRes;
-                                String AppName = mActivity.getResources().getString(labelRes);
+                                String AppName = mActivity.getResources().getString(mActivity.getApplicationInfo().labelRes);
                                 Toast.makeText(mActivity, "UnYongModel4Bili 运行成功\n当前游戏：" + AppName, Toast.LENGTH_LONG).show();
                             } catch (Exception e) {
-                                printLog(e.getMessage());
+                                printLog(e);
                             }
                         }
-                    });
 
-                    printLog("Hook : 拦截官方登陆器，调用自定义登陆器");
-                    XposedHelpers.findAndHookMethod("com.bsgamesdk.android.BSGameSdk", mLoadPackageParam.classLoader, "login", cCallbackListener, new XC_MethodHook() {
-                        Object object;
                         @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            paramBSGameSdk = param;
-                            if (param.args[0] != null) {
-                                object = param.args[0];
-                                param.setResult(null);
-                                try {
-                                    printLog(dcLoader.loadClass("net.pois0nbread.unyoungmodel4bili.hook.MyLoginActivity").getName());
-                                    mActivity.startActivity(new Intent(mActivity, dcLoader.loadClass("net.pois0nbread.unyoungmodel4bili.hook.MyLoginActivity")));
-                                } catch (ClassNotFoundException e) {
-                                    printLog(e.getMessage());
-                                }
-                            } else {
-                                param.args[0] = object;
-                            }
+                        protected void afterHookedMethod(MethodHookParam param) {
+                            oBSGameSdk = param.getResult();
                         }
                     });
 
-                    printLog("Hook : 拦截官方登陆器数据");
-                    XposedHelpers.findAndHookMethod("com.bsgamesdk.android.j", mLoadPackageParam.classLoader, "run", new XC_MethodHook() {
+                    //拦截BSGameAntiIndulegnceActivity->onCreate
+                    printLog("Hook : 拦截BSGameAntiIndulegnceActivity->onCreate");
+                    XposedHelpers.findAndHookMethod("com.bsgamesdk.android.dc.activity.BSGameAntiIndulegnceActivity", myClassLoader, "onCreate", Bundle.class, new XC_MethodHook() {
+
+                        AlertDialog alertDialog;
                         @SuppressLint("SimpleDateFormat")
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) {
-                            try {
-                                Field b = XposedHelpers.findField(XposedHelpers.findClass("com.bsgamesdk.android.j", mLoadPackageParam.classLoader), "b");
-                                b.setAccessible(true);
-                                Method c = cBSGameSdk.getDeclaredMethod("c", cBSGameSdk);
-                                c.setAccessible(true);
-                                JSONObject jsonObject = (JSONObject) c.invoke(null, b.get(param.thisObject));
-                                if (jsonObject.getString("result").equals("1")) {
-                                    UserInfo userInfo = new UserInfo();
-                                    userInfo.setUid(jsonObject.getString("uid"));
-                                    userInfo.setUsername(jsonObject.getString("username"));
-                                    userInfo.setNickname(jsonObject.getString("nickname"));
-                                    userInfo.setAccess_token(jsonObject.getString("access_token"));
-                                    userInfo.setExpire_times(jsonObject.getString("expire_times"));
-                                    userInfo.setRefresh_token(jsonObject.getString("refresh_token"));
-                                    userInfo.setLaste_login_time(new SimpleDateFormat("yyyy年MM月dd日 HH:mm").format(new Date()));
-                                    userInfo.setLaste_login_time_long(Long.parseLong(new SimpleDateFormat("yyyyMMdd").format(new Date())));
-                                    UserInfoUtil.putUserInfoToSharedPreferences(mPreferences, userInfo);
-                                    printLog("Hook : 拦截官方登陆器数据成功 , UserName = " + jsonObject.getString("username"));
+                            Activity myLoginActivity = (Activity) param.thisObject;
+                            Context dialogContext = new ContextThemeWrapper(myLoginActivity, android.R.style.Theme_Material_Light_Dialog);
+                            Context windowContext = new ContextThemeWrapper(myLoginActivity, android.R.style.Theme_Material_Light);
+
+                            UserInfoAdapter mArrayAdapter = new UserInfoAdapter(windowContext, UserInfoUtil.getUserInfoListBySharedPreferences(mPreferences)) {
+
+                                @Override
+                                protected void onDeleteListener(String uid) {
+                                    UserInfoUtil.removeUserInfoByUID(mPreferences, uid);
+                                    changeData(UserInfoUtil.getUserInfoListBySharedPreferences(mPreferences));
+                                    Toast.makeText(myLoginActivity, "删除成功", Toast.LENGTH_SHORT).show();
                                 }
-                            } catch (Exception e) {
-                                e.printStackTrace();
+
+                                @Override
+                                protected void onLoginListener(UserInfo userInfo) {
+                                    try {
+                                        setDialogShowing(alertDialog, false);
+                                        myLoginActivity.finish();
+                                        Method m = cCallbackListener.getDeclaredMethod("onSuccess", Bundle.class);
+                                        Bundle mBundle = new Bundle();
+                                        mBundle.putInt("result", 1);
+                                        mBundle.putString("uid", userInfo.getUid());
+                                        mBundle.putString("username", userInfo.getUsername());
+                                        mBundle.putString("nickname", userInfo.getNickname());
+                                        mBundle.putString("access_token", userInfo.getAccess_token());
+                                        mBundle.putString("expire_times", userInfo.getExpire_times());
+                                        mBundle.putString("refresh_token", userInfo.getRefresh_token());
+                                        m.invoke(oCallbackListener, mBundle);
+                                        Toast.makeText(myLoginActivity, "正在登录", Toast.LENGTH_SHORT).show();
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            };
+
+                            AlertDialog.Builder mBuild = new AlertDialog.Builder(dialogContext);
+                            mBuild.setCancelable(false);
+                            mBuild.setMessage("\n单击用户名登录， 长按查看详细信息或删除");
+                            mBuild.setNeutralButton("关于&设置", (dialog, which) -> {
+                                        myLoginActivity.startActivity(myLoginActivity.getPackageManager().getLaunchIntentForPackage("net.pois0nbread.unyoungmodel4bili"));
+                                        setDialogShowing(dialog, true);
+                                    });
+                            mBuild.setPositiveButton("取消登录", (dialog, which) -> {
+                                        try {
+                                            myLoginActivity.finish();
+                                            setDialogShowing(dialog, false);
+                                            Toast.makeText(myLoginActivity, "取消登录", Toast.LENGTH_SHORT).show();
+                                            Method m = cCallbackListener.getDeclaredMethod("onFailed", cBSGameSdkError);
+                                            m.invoke(oCallbackListener, cBSGameSdkError.getConstructor(int.class, String.class).newInstance(6002, "用户取消登录"));
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    });
+                            mBuild.setNegativeButton("添加用户", (dialog, which) -> {
+                                        setDialogShowing(dialog, true);
+                                        new AlertDialog.Builder(dialogContext)
+                                                .setTitle("选择导入方式")
+                                                .setMessage("本地导入将自动获取上次在线导入信息\n适合被限制用户登录")
+                                                .setCancelable(false)
+                                                .setNeutralButton("取消", (dialog1, which1) -> dialog1.dismiss())
+                                                .setPositiveButton("本地导入", (dialog1, which1) -> {
+                                                    try {
+                                                        Class<?> cq = myClassLoader.loadClass("com.bsgamesdk.android.model.q");
+                                                        Class<?> cUserParcelable = myClassLoader.loadClass("com.bsgamesdk.android.model.UserParcelable");
+                                                        Object oUserParcelable = cq.getDeclaredMethod("c").invoke(cq.getConstructor(Context.class).newInstance(myLoginActivity));
+                                                        if (getField(oUserParcelable, cUserParcelable, "access_token") == null ) {
+                                                            Toast.makeText(myLoginActivity, "添加用户失败：没有数据", Toast.LENGTH_SHORT).show();
+                                                            return;
+                                                        }
+                                                        UserInfo userInfo = new UserInfo();
+                                                        userInfo.setUid(String.valueOf((long) getField(oUserParcelable, cUserParcelable, "uid_long")));
+                                                        userInfo.setUsername((String) getField(oUserParcelable, cUserParcelable, "nickname"));
+                                                        userInfo.setNickname((String) getField(oUserParcelable, cUserParcelable, "nickname"));
+                                                        userInfo.setAccess_token((String) getField(oUserParcelable, cUserParcelable, "access_token"));
+                                                        userInfo.setExpire_times(String.valueOf((long) getField(oUserParcelable, cUserParcelable, "expire_in")));
+                                                        userInfo.setRefresh_token((String) getField(oUserParcelable, cUserParcelable, "refresh_token"));
+                                                        userInfo.setLaste_login_time(new SimpleDateFormat("yyyy年MM月dd日 HH:mm").format(new Date()));
+                                                        userInfo.setLaste_login_time_long(Long.parseLong(new SimpleDateFormat("yyyyMMdd").format(new Date())));
+                                                        UserInfoUtil.putUserInfoToSharedPreferences(mPreferences, userInfo);
+                                                        Toast.makeText(myLoginActivity, "添加用户成功", Toast.LENGTH_SHORT).show();
+                                                        myLoginActivity.recreate();
+                                                        printLog("Hook : 拦截官方登陆器数据成功 , UserName = " + getField(oUserParcelable, cUserParcelable, "username"));
+                                                    } catch (Exception e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                })
+                                                .setNegativeButton("在线导入", (dialog1, which1) -> {
+                                                    try {
+                                                        myLoginActivity.finish();
+                                                        setDialogShowing(dialog, false);
+                                                        Toast.makeText(myLoginActivity, "正在添加用户", Toast.LENGTH_SHORT).show();
+                                                        Method m = cBSGameSdk.getDeclaredMethod("login", cCallbackListener);
+                                                        m.invoke(oBSGameSdk, new Object[]{null});
+                                                    } catch (Exception e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                })
+                                                .create().show();
+                                    });
+                            mBuild.setTitle("B服多用户快速切换登陆器");
+
+                            ListView mListView = new ListView(windowContext);
+                            mListView.setAdapter(mArrayAdapter);
+
+                            ScrollView mScrollView = new ScrollView(windowContext);
+                            mScrollView.setFillViewport(true);
+                            View item = mArrayAdapter.getView(0, null, mListView);
+                            item.measure(0,0);
+                            mScrollView.setLayoutParams(new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (int) (item.getMeasuredHeight() * 1.5)));
+                            mScrollView.addView(mListView);
+
+                            RelativeLayout mRelativeLayout = new RelativeLayout(windowContext);
+                            mRelativeLayout.addView(mScrollView);
+
+                            mBuild.setView(mRelativeLayout);
+                            alertDialog = mBuild.create();
+                            alertDialog.show();
+                        }
+                    });
+
+                    //拦截官方登陆器，调用自定义登陆器
+                    printLog("Hook : 拦截官方登陆器，调用自定义登陆器");
+                    XposedHelpers.findAndHookMethod("com.bsgamesdk.android.BSGameSdk", myClassLoader, "login", cCallbackListener, new XC_MethodHook() {
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) {}
+
+                        @SuppressLint("SimpleDateFormat")
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            if (param.args[0] != null) {
+                                oCallbackListener = param.args[0];
+                                param.setResult(null);
+                                try {
+                                    Intent intent = new Intent(mActivity, BSGameAntiIndulegnceActivity.class);
+                                    intent.putExtra("isFromXposed", true);
+                                    mActivity.startActivity(intent);
+                                } catch (Exception e) {
+                                    printLog(e);
+                                }
+                            } else {
+                                InvocationHandler handler = (proxy, method, args) -> {
+                                    if ("onSuccess".equals(method.getName())) {
+                                        Bundle bundle = (Bundle) args[0];
+                                        if (bundle.getInt("result", -1) == 1) {
+                                            UserInfo userInfo = new UserInfo();
+                                            userInfo.setUid(bundle.getString("uid"));
+                                            userInfo.setUsername(bundle.getString("username"));
+                                            userInfo.setNickname(bundle.getString("nickname"));
+                                            userInfo.setAccess_token(bundle.getString("access_token"));
+                                            userInfo.setExpire_times(bundle.getString("expire_times"));
+                                            userInfo.setRefresh_token(bundle.getString("refresh_token"));
+                                            userInfo.setLaste_login_time(new SimpleDateFormat("yyyy年MM月dd日 HH:mm").format(new Date()));
+                                            userInfo.setLaste_login_time_long(Long.parseLong(new SimpleDateFormat("yyyyMMdd").format(new Date())));
+                                            UserInfoUtil.putUserInfoToSharedPreferences(mPreferences, userInfo);
+                                            mActivity.runOnUiThread(() -> Toast.makeText(mActivity, "添加用户成功", Toast.LENGTH_SHORT).show());
+                                            printLog("Hook : 拦截官方登陆器数据成功 , UserName = " + bundle.getString("username"));
+                                        } else {
+                                            mActivity.runOnUiThread(() -> Toast.makeText(mActivity, "添加用户失败 result=" + bundle.getString("result"), Toast.LENGTH_SHORT).show());
+                                        }
+                                    } else {
+                                        mActivity.runOnUiThread(() ->  Toast.makeText(mActivity, "添加用户失败", Toast.LENGTH_SHORT).show());
+                                    }
+                                    Intent intent = new Intent(mActivity, BSGameAntiIndulegnceActivity.class);
+                                    intent.putExtra("isFromXposed", true);
+                                    mActivity.startActivity(intent);
+                                    return null;
+                                };
+                                param.args[0] = Proxy.newProxyInstance(myClassLoader, new Class[]{cCallbackListener}, handler);
                             }
                         }
                     });
 
-                    printLog("Hook : 屏蔽官方登陆器快速登陆");
-                    XposedHelpers.findAndHookMethod("com.bsgamesdk.android.activity.Login_RegActivity", mLoadPackageParam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
+                    //阻止自动登录
+                    printLog("Hook : 阻止自动登录");
+                    XposedHelpers.findAndHookMethod("com.bsgamesdk.android.activity.WelcomeActivity", myClassLoader, "onCreate", Bundle.class, new XC_MethodHook() {
                         @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            ((Context) param.thisObject).getSharedPreferences("login", 0).edit().clear().apply();
+                        protected void afterHookedMethod(MethodHookParam param) {
+                            Activity activity = (Activity) param.thisObject;
+
+                            activity.setResult(2002);
+                            activity.finish();
+
                         }
                     });
                 }
 
+                MyClassLoader.replaceClassLoader1(myClassLoader, mApplicationContext.getClassLoader());
                 printLog("Hook : 完成Hook");
             }
         });
-    }
-
-    private String getSDKVersion(ClassLoader classLoader) {
-        try {
-            Class<?> c = XposedHelpers.findClass("com.bsgamesdk.android.t", classLoader);
-            Method m = c.getDeclaredMethod("getSDK_Version");
-            return (String) m.invoke(c.newInstance());
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        }
-        return "null";
     }
 
     private void setDialogShowing(DialogInterface dialog, boolean b) {
@@ -363,109 +360,18 @@ public class HookImp implements IXposedHookLoadPackage {
         XposedBridge.log(TAG + log);
     }
 
-    @SuppressLint("PrivateApi")
-    private void hook(ClassLoader loader) throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-
-        Object gDefault;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Field singletonField = loader.loadClass("android.app.ActivityManager").getDeclaredField("IActivityManagerSingleton");
-            singletonField.setAccessible(true);
-            gDefault = singletonField.get(null);
-        } else {
-            Field gDefaultField = loader.loadClass("android.app.ActivityManagerNative").getDeclaredField("gDefault");
-            gDefaultField.setAccessible(true);
-            gDefault = gDefaultField.get(null);
-        }
-
-        //　获取mIntance
-        Field mInstanceField = loader.loadClass("android.util.Singleton").getDeclaredField("mInstance");
-        mInstanceField.setAccessible(true);
-        Object mInstance = mInstanceField.get(gDefault);
-
-        // 替换mIntance
-        Object proxy = Proxy.newProxyInstance(mInstance.getClass().getClassLoader(),new Class[]{loader.loadClass("android.app.IActivityManager")},new IActivityManagerHandler(mInstance));
-        mInstanceField.set(gDefault, proxy);
-
-        //　获取ActivityThread实例
-        Class activityThreadClass = loader.loadClass("android.app.ActivityThread");
-        Field threadField = activityThreadClass.getDeclaredField("sCurrentActivityThread");
-        threadField.setAccessible(true);
-        Object sCurrentActivityThread = threadField.get(null);
-
-        //　获取mH变量
-        Field mHField = activityThreadClass.getDeclaredField("mH");
-        mHField.setAccessible(true);
-        Object mH = mHField.get(sCurrentActivityThread);
-
-        //　设置mCallback变量
-        Field mCallbackField = Handler.class.getDeclaredField("mCallback");
-        mCallbackField.setAccessible(true);
-        Handler.Callback callback = msg -> {
-            if (msg.what == 100) {
-                try {
-                    Field intentField = msg.obj.getClass().getDeclaredField("intent");
-                    intentField.setAccessible(true);
-                    Intent intent = (Intent) intentField.get(msg.obj);
-                    Intent raw = intent.getParcelableExtra("RawIntent");
-                    intent.setComponent(raw.getComponent());
-                } catch (Exception e) {
-                    printLog(e.getMessage());
-                }
-            }
-            return false;
-        };
-        mCallbackField.set(mH, callback);
-
-        Class<?> clazz_Ath = Class.forName("android.app.ActivityThread");
-        Class<?> clazz_LApk = Class.forName("android.app.LoadedApk");
-
-        Object currentActivityThread = clazz_Ath.getMethod("currentActivityThread").invoke(null);
-        Field field1 = clazz_Ath.getDeclaredField("mPackages");
-        field1.setAccessible(true);
-        Map mPackages = (Map) field1.get(currentActivityThread);
-
-        WeakReference ref = (WeakReference) mPackages.get(mApplicationContext.getPackageName());
-        Field field2 = clazz_LApk.getDeclaredField("mClassLoader");
-        field2.setAccessible(true);
-        field2.set(Objects.requireNonNull(ref).get(), dcLoader);
+    private static void printLog(Exception e) {
+        XposedBridge.log(TAG + e.getMessage());
+        e.printStackTrace();
     }
 
-    static class IActivityManagerHandler implements InvocationHandler {
-        private Object mOrigin;
-
-        IActivityManagerHandler(Object origin) {
-            mOrigin = origin;
-        }
-
-        @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            if ("startActivity".equals(method.getName())) {
-                int index = 0;
-                for (int i = 0; i < args.length; i++) {
-                    if (args[i] instanceof Intent) {
-                        index = i;
-                        break;
-                    }
-                }
-                Intent raw = (Intent) args[index];
-
-                try {
-                    if (!raw.getComponent().getClassName().equals("net.pois0nbread.unyoungmodel4bili.hook.MyLoginActivity")) {
-                        printLog("not change Intent");
-                        return method.invoke(mOrigin, args);
-                    }
-                } catch (Exception e) {
-                    printLog("not change Intent" + e.getMessage());
-                    return method.invoke(mOrigin, args);
-                }
-
-                Intent intent = new Intent();
-                intent.setClassName(raw.getComponent().getPackageName(), "com.bsgamesdk.android.activity.ExitActivity");
-                intent.putExtra("RawIntent", raw);
-                args[index] = intent;
-            }
-            return method.invoke(mOrigin, args);
+    private static Object getField(Object o, Class c, String name){
+        try {
+            Field f = c.getDeclaredField(name);
+            return f.get(o);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

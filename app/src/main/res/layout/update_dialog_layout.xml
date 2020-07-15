@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RadioGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <RadioButton
+        android:id="@+id/dialog_update_radioButton0"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="GitEE（国内源 速度快）" />
+
+    <RadioButton
+        android:id="@+id/dialog_update_radioButton1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="GitHub（老牌子 稳定）" />
+
+    <RadioButton
+        android:id="@+id/dialog_update_radioButton2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="自定义" />
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/dialog_update_editText"
+        android:enabled="false"
+        android:hint="请输入链接"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+</RadioGroup>

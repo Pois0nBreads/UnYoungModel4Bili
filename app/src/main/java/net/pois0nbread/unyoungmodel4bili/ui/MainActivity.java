@@ -7,12 +7,16 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.RadioButton;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.Toast;
@@ -34,6 +38,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * <pre>
@@ -49,7 +54,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
     private Context mContext = this;
 
-    private final String updateAdress = "https://pois0nbreads.github.io/Breads/unyoungmodel4bili.json";
+    private final String updateAddress0 = "https://pois0nbread.gitee.io/breads/unyoungmodel4bili.json";
+    private final String updateAddress1 = "https://pois0nbreads.github.io/Breads/unyoungmodel4bili.json";
 
     public static SharedPreferences mSharedPreferences = null;
 
@@ -57,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mSharedPreferences = getSharedPreferences(MapKeys.Settings.toString(), Context.MODE_PRIVATE);
+        mSharedPreferences = getSharedPreferences(MapKeys.Settings, Context.MODE_PRIVATE);
         bindView();
         if (!isHooked()) {
             new AlertDialog.Builder(mContext)
@@ -66,11 +72,11 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                     .setNegativeButton("确认", (dialog, which) -> {})
                     .create().show();
         }
-        if (mSharedPreferences.getBoolean(MapKeys.First_Open.toString(), true)) {
+        if (mSharedPreferences.getBoolean(MapKeys.First_Open, true)) {
             new AlertDialog.Builder(mContext)
                     .setTitle("用户须知")
                     .setMessage("重要的事情：\n1.这是一个Xposed插件，需要Xposed环境\n2.请尽可能不要在非正常方式登陆时氪金\n3.这是免费软件，请不要在任何地方付费\n4.本软件遵循GNU协议，请勿用于商业用途")
-                    .setPositiveButton("不再提示", (dialog, which) -> mSharedPreferences.edit().putBoolean(MapKeys.First_Open.toString(), false).apply())
+                    .setPositiveButton("不再提示", (dialog, which) -> mSharedPreferences.edit().putBoolean(MapKeys.First_Open, false).apply())
                     .setNegativeButton("关闭", (dialog, which) -> {})
                     .show();
         }
@@ -83,9 +89,9 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         SwitchCompat mLogoutSwitch = findViewById(R.id.main_logout_mode_sw);
 
         //setCheckByShareSetting
-        mEnableSwitch.setChecked(mSharedPreferences.getBoolean(MapKeys.Enable.toString(), false));
-        mLauncherSwitch.setChecked(mSharedPreferences.getBoolean(MapKeys.Launcher_Mode.toString(), false));
-        mLogoutSwitch.setChecked(mSharedPreferences.getBoolean(MapKeys.Logout_Mode.toString(), false));
+        mEnableSwitch.setChecked(mSharedPreferences.getBoolean(MapKeys.Enable, false));
+        mLauncherSwitch.setChecked(mSharedPreferences.getBoolean(MapKeys.Launcher_Mode, false));
+        mLogoutSwitch.setChecked(mSharedPreferences.getBoolean(MapKeys.Logout_Mode, false));
 
         //bindListener
         mEnableSwitch.setOnCheckedChangeListener(this);
@@ -95,21 +101,72 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         findViewById(R.id.main_qq_group_btn).setOnClickListener(v -> joinQQGroup("9UitjO-Id4O5Sj-wfbR3icMb76XcAQ57"));
         findViewById(R.id.main_check_update_button).setOnClickListener(v -> checkUpdate());
         findViewById(R.id.main_github_button).setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pois0nBreads/UnYoungModel4Bili"))));
+        findViewById(R.id.main_set_update_button).setOnClickListener(v -> {
+
+            View
+                    view = View.inflate(mContext, R.layout.update_dialog_layout, null);
+
+            RadioButton
+                    radioButton0 = view.findViewById(R.id.dialog_update_radioButton0),
+                    radioButton1 = view.findViewById(R.id.dialog_update_radioButton1),
+                    radioButton2 = view.findViewById(R.id.dialog_update_radioButton2);
+
+            EditText
+                    editText = view.findViewById(R.id.dialog_update_editText);
+
+            CompoundButton.OnCheckedChangeListener onCheckedChangeListener = (buttonView, isChecked) -> editText.setEnabled(radioButton2.isChecked());
+            radioButton0.setOnCheckedChangeListener(onCheckedChangeListener);
+            radioButton1.setOnCheckedChangeListener(onCheckedChangeListener);
+            radioButton2.setOnCheckedChangeListener(onCheckedChangeListener);
+
+            switch (Objects.requireNonNull(mSharedPreferences.getString(MapKeys.Update_URL, "0"))) {
+                case "0":
+                    radioButton0.setChecked(true);
+                    break;
+                case "1":
+                    radioButton1.setChecked(true);
+                    break;
+                default:
+                    radioButton2.setChecked(true);
+                    editText.setEnabled(true);
+                    editText.setText(mSharedPreferences.getString(MapKeys.Update_URL, ""));
+                    break;
+            }
+
+            new AlertDialog.Builder(mContext)
+                    .setNeutralButton("取消", (dialog, which) -> dialog.dismiss())
+                    .setPositiveButton("确认", (dialog, which) -> {
+                        if (radioButton0.isChecked()) mSharedPreferences.edit().putString(MapKeys.Update_URL, "0").apply();
+                        if (radioButton1.isChecked()) mSharedPreferences.edit().putString(MapKeys.Update_URL, "1").apply();
+                        if (radioButton2.isChecked()) {
+                            try {
+                                if (!Uri.parse(editText.getText().toString()).getScheme().equals("https")) throw new Exception();
+                            } catch (Exception e) {
+                                Toast.makeText(mContext, "地址非法", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            mSharedPreferences.edit().putString(MapKeys.Update_URL, editText.getText().toString()).apply();
+                        }
+                    })
+                    .setView(view)
+                    .setTitle("设置更新路径")
+                    .create().show();
+        });
     }
 
     @Override
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         switch (buttonView.getId()) {
             case R.id.main_enable_sw:
-                mSharedPreferences.edit().putBoolean(MapKeys.Enable.toString(), isChecked).apply();
+                mSharedPreferences.edit().putBoolean(MapKeys.Enable, isChecked).apply();
                 Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.main_launcher_mode_sw:
-                mSharedPreferences.edit().putBoolean(MapKeys.Launcher_Mode.toString(), isChecked).apply();
+                mSharedPreferences.edit().putBoolean(MapKeys.Launcher_Mode, isChecked).apply();
                 Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.main_logout_mode_sw:
-                mSharedPreferences.edit().putBoolean(MapKeys.Logout_Mode.toString(), isChecked).apply();
+                mSharedPreferences.edit().putBoolean(MapKeys.Logout_Mode, isChecked).apply();
                 Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
                 break;
         }
@@ -128,8 +185,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
     private boolean checking = false;
 
-    @SuppressLint("HandlerLeak")
-    Handler mHandler = new Handler() {
+    private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             try {
@@ -224,7 +280,18 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         new Thread(() -> {
             StringBuilder get = new StringBuilder();
             try {
-                URL url = new URL(updateAdress);
+                URL url;
+                switch (Objects.requireNonNull(mSharedPreferences.getString(MapKeys.Update_URL, "0"))) {
+                    case "0":
+                        url = new URL(updateAddress0);
+                        break;
+                    case "1":
+                        url = new URL(updateAddress1);
+                        break;
+                    default:
+                        url = new URL(mSharedPreferences.getString(MapKeys.Update_URL, "0"));
+                        break;
+                }
                 URLConnection conn = url.openConnection();
                 BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 String buf;

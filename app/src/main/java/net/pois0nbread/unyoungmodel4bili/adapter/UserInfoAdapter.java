@@ -24,9 +24,9 @@ import java.util.Objects;
  * <pre>
  *     author : Pois0nBread
  *     e-mail : pois0nbreads@gmail.com
- *     time   : 2020/04/19
+ *     time   : 2020/07/14
  *     desc   : UserInfoAdapter
- *     version: 2.0
+ *     version: 2.2.0
  * </pre>
  */
 
@@ -55,7 +55,7 @@ public class UserInfoAdapter extends BaseAdapter {
         this.mContext = context;
     }
 
-    protected void changeData(List<UserInfo> userInfo) {
+    public void changeData(List<UserInfo> userInfo) {
         if (userInfo == null) {
             isNullData = true;
             this.mData = nullDataUserInfo;

@@ -1,5 +1,6 @@
 package net.pois0nbread.unyoungmodel4bili.ui;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -34,9 +35,9 @@ import java.util.List;
  * <pre>
  *     author : Pois0nBread
  *     e-mail : pois0nbreads@gmail.com
- *     time   : 2030/04/19
+ *     time   : 2030/07/14
  *     desc   : HookSettingActivity
- *     version: 2.0
+ *     version: 2.2.0
  * </pre>
  */
 
@@ -45,16 +46,12 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
     private SharedPreferences mSharedPreferences = MainActivity.mSharedPreferences;
     private Context mContext = this;
 
-    private SwitchCompat mSmartModeSwitch = null;
     private ListView mListView = null;
     private LinearLayout mLinearLayout = null;
-    private ListView mDialogListView = null;
 
-    private View mView  = null;
     private AlertDialog mDialog = null;
 
     private HookListAdapter mHookListAdapter = null;
-    private AppAdapter mAppAdapter = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,13 +62,13 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
 
     private void bindView() {
         //bindView
-        mSmartModeSwitch = findViewById(R.id.settings_smart_hook_mode_sw);
+        SwitchCompat mSmartModeSwitch = findViewById(R.id.settings_smart_hook_mode_sw);
         mListView = findViewById(R.id.setting_listView);
         mLinearLayout = findViewById(R.id.setting_linear_layout);
 
         //setCheck
-        mSmartModeSwitch.setChecked(mSharedPreferences.getBoolean(MapKeys.Smart_Hook_Mode.toString(), true));
-        if (mSharedPreferences.getBoolean(MapKeys.Smart_Hook_Mode.toString(), true))
+        mSmartModeSwitch.setChecked(mSharedPreferences.getBoolean(MapKeys.Smart_Hook_Mode, true));
+        if (mSharedPreferences.getBoolean(MapKeys.Smart_Hook_Mode, true))
             mLinearLayout.setVisibility(View.INVISIBLE);
         else mLinearLayout.setVisibility(View.VISIBLE);
 
@@ -79,7 +76,7 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
         findViewById(R.id.setting_add_btn).setOnClickListener(this);
         findViewById(R.id.setting_clear_btn).setOnClickListener(this);
         mSmartModeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            mSharedPreferences.edit().putBoolean(MapKeys.Smart_Hook_Mode.toString(), isChecked).apply();
+            mSharedPreferences.edit().putBoolean(MapKeys.Smart_Hook_Mode, isChecked).apply();
             if (isChecked)
                 mLinearLayout.setVisibility(View.INVISIBLE);
             else
@@ -88,21 +85,21 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
         });
 
         //setDialogView
-        mView = LayoutInflater.from(mContext).inflate(R.layout.apps_dialog_layout, null);
-        mDialogListView = mView.findViewById(R.id.dialog_list);
-        mAppAdapter = new AppAdapter(mContext, getAllAppInfos());
-        mDialogListView.setAdapter(mAppAdapter);
+        @SuppressLint("InflateParams")
+        View mView = LayoutInflater.from(mContext).inflate(R.layout.apps_dialog_layout, null, false);
+        ListView mDialogListView = mView.findViewById(R.id.dialog_list);
+        mDialogListView.setAdapter(new AppAdapter(mContext, getAllAppInfos()));
         mDialogListView.setOnItemClickListener((parent, view, position, id) -> {
             AppInfo appInfo = (AppInfo) parent.getItemAtPosition(position);
             try {
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put("ApplicationName", appInfo.getAppName());
                 jsonObject.put("PackageName", appInfo.getPackageName());
-                String jsonString = mSharedPreferences.getString(MapKeys.Hook_List.toString(), null);
+                String jsonString = mSharedPreferences.getString(MapKeys.Hook_List, null);
                 if (jsonString == null || jsonString.equals("")) {
                     JSONArray jsonArray = new JSONArray();
                     jsonArray.put(jsonObject);
-                    mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), jsonArray.toString()).apply();
+                    mSharedPreferences.edit().putString(MapKeys.Hook_List, jsonArray.toString()).apply();
                     mDialog.dismiss();
                     mHookListAdapter = new HookListAdapter(mContext, getListByShare());
                     mListView.setAdapter(mHookListAdapter);
@@ -118,7 +115,7 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
                     }
                 }
                 jsonArray.put(jsonObject);
-                mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), jsonArray.toString()).apply();
+                mSharedPreferences.edit().putString(MapKeys.Hook_List, jsonArray.toString()).apply();
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -137,7 +134,7 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
         mListView.setOnItemLongClickListener((parent, view, position, id) -> {
             JSONObject mJSONObject = (JSONObject) parent.getItemAtPosition(position);
             if (mJSONObject == null) return true;
-            String jsonString = mSharedPreferences.getString(MapKeys.Hook_List.toString(),null);
+            String jsonString = mSharedPreferences.getString(MapKeys.Hook_List,null);
             if (jsonString == null) return true;
             try {
                 JSONArray jsonArray = new JSONArray(jsonString);
@@ -147,7 +144,7 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
                         jsonArray.remove(i);
                     }
                 }
-                mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), jsonArray.toString()).apply();
+                mSharedPreferences.edit().putString(MapKeys.Hook_List, jsonArray.toString()).apply();
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -159,7 +156,7 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
 
     private List<JSONObject> getListByShare() {
         List<JSONObject> list = new ArrayList<>();
-        String jsonString = mSharedPreferences.getString(MapKeys.Hook_List.toString(), null);
+        String jsonString = mSharedPreferences.getString(MapKeys.Hook_List, null);
         if (jsonString == null) return list;
         try {
             JSONArray jsonArray = new JSONArray(jsonString);
@@ -195,7 +192,7 @@ public class HookSettingActivity extends AppCompatActivity implements View.OnCli
                 mDialog.show();
                 break;
             case R.id.setting_clear_btn:
-                mSharedPreferences.edit().putString(MapKeys.Hook_List.toString(), "").apply();
+                mSharedPreferences.edit().putString(MapKeys.Hook_List, "").apply();
                 mHookListAdapter = new HookListAdapter(this, getListByShare());
                 mListView.setAdapter(mHookListAdapter);
                 Toast.makeText(mContext, "重启游戏生效", Toast.LENGTH_SHORT).show();
