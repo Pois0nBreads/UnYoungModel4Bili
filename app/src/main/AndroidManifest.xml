@@ -41,7 +41,7 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="B服反防沉迷系统 (V2.0.1)" />
+            android:value="@string/xposed_label" />
         <meta-data
             android:name="xposedminversion"
             android:value="82" />

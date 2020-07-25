@@ -49,7 +49,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
  *     e-mail : pois0nbreads@gmail.com
  *     time   : 2030/07/14
  *     desc   : HookImp
- *     version: 2.2.0
+ *     version: 2.2.1
  * </pre>
  */
 
@@ -140,7 +140,7 @@ public class HookImp implements IXposedHookLoadPackage {
 
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) {
-                            oBSGameSdk = param.getResult();
+                            oBSGameSdk = param.thisObject;
                         }
                     });
 
